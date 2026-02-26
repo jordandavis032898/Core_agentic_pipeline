@@ -1,0 +1,108 @@
+# ============================================================================
+# Agentic Router - Docker Compose
+# ============================================================================
+# Full stack: FastAPI App + Qdrant
+#
+# Usage:
+#   Start all:    docker-compose up -d
+#   Start with build: docker-compose up -d --build
+#   View logs:    docker-compose logs -f
+#   Stop all:     docker-compose down
+#   Stop + clean: docker-compose down -v
+# ============================================================================
+
+version: '3.8'
+
+services:
+  # ==========================================================================
+  # Agentic Router API
+  # ==========================================================================
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: agentic-router:latest
+    container_name: agentic_router_api
+    ports:
+      - "8000:8000"
+    environment:
+      # API Configuration
+      - API_KEY=${API_KEY:-}
+      
+      # OpenAI Configuration
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      
+      # LlamaParse Configuration
+      - LLAMA_CLOUD_API_KEY=${LLAMA_CLOUD_API_KEY}
+      
+      # Qdrant Configuration (points to Qdrant service)
+      - QDRANT_URL=http://qdrant:6333
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - QDRANT_API_KEY=${QDRANT_API_KEY:-}
+      - COLLECTION_NAME=${COLLECTION_NAME:-policy_documents}
+      
+      # Model Configuration
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-text-embedding-3-small}
+      - LLM_MODEL=${LLM_MODEL:-gpt-4o}
+      - EXTRACTOR_MODEL=${EXTRACTOR_MODEL:-gpt-4o-mini}
+      
+      # Processing Configuration
+      - TOP_K=${TOP_K:-5}
+      - USE_MULTIMODAL=${USE_MULTIMODAL:-true}
+      
+      # Python Configuration
+      - PYTHONUNBUFFERED=1
+    volumes:
+      # Mount uploads directory for persistent storage
+      - uploads_data:/app/uploads
+    depends_on:
+      qdrant:
+        condition: service_started
+    networks:
+      - agentic_router_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  # ==========================================================================
+  # Qdrant Vector Database
+  # ==========================================================================
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: agentic_router_qdrant
+    ports:
+      - "6335:6333"   # Host 6335 → avoid conflict with other Qdrant on 6333
+      - "6336:6334"
+    volumes:
+      # Persist data
+      - qdrant_data:/qdrant/storage
+    networks:
+      - agentic_router_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:6333/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+# ============================================================================
+# Volumes
+# ============================================================================
+volumes:
+  qdrant_data:
+    driver: local
+  uploads_data:
+    driver: local
+
+# ============================================================================
+# Networks
+# ============================================================================
+networks:
+  agentic_router_network:
+    driver: bridge

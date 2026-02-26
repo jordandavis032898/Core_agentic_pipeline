@@ -1,0 +1,17 @@
+llama-index-core==0.12.30
+llama-index-embeddings-openai
+llama-index-llms-openai
+llama-index-vector-stores-qdrant
+# SentenceTransformerRerank is included in llama-index-core, no separate package needed
+# sentence-transformers is required as a dependency
+sentence-transformers
+llama-parse
+qdrant-client==1.11.0
+pandas
+tqdm
+nest-asyncio
+fastapi
+uvicorn
+python-multipart
+python-dotenv
+

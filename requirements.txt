@@ -1,0 +1,55 @@
+# ============================================================================
+# Agentic Router - Python Dependencies
+# ============================================================================
+
+# FastAPI and Server
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+python-multipart>=0.0.6
+
+# Pydantic for data validation
+pydantic>=2.5.0
+
+# OpenAI (compatible with llama-index 0.12.30)
+# Note: There's a version mismatch between openai 1.109.1 and llama-index-llms-openai 0.3.38
+# A compatibility patch (compat_patch.py) is applied to fix ResponseTextAnnotationDeltaEvent import
+openai>=1.66.3,<2.0.0
+
+# LlamaIndex Core (matching pipeline_v1_final - no version constraints to let pip resolve)
+llama-index-core==0.12.30
+llama-index-embeddings-openai
+llama-index-llms-openai  # Version 0.3.38 has compatibility issue with openai 1.109.1 - patched in compat_patch.py
+llama-index-vector-stores-qdrant
+# SentenceTransformerRerank is included in llama-index-core.postprocessor, no separate package needed
+# sentence-transformers is required as a dependency
+sentence-transformers>=2.2.0
+# LlamaParse for PDF parsing
+llama-parse>=0.4.0
+
+# Qdrant Vector Database (version 1.11.0 required for compatibility)
+qdrant-client==1.11.0
+
+# PDF Processing (optional - for page previews)
+pymupdf>=1.23.0
+
+# Async support
+nest-asyncio>=1.5.8
+aiohttp>=3.9.0
+
+# Web scraping (EDGAR)
+beautifulsoup4>=4.12.0
+requests>=2.31.0
+lxml>=5.1.0
+
+# Data processing
+pandas>=2.1.0
+tqdm>=4.66.0
+
+# Environment variables
+python-dotenv>=1.0.0
+
+# JSON Schema validation (for extractor)
+jsonschema>=4.21.0
+
+# Excel export (optional)
+openpyxl>=3.1.0

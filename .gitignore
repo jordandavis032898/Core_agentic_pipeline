@@ -1,0 +1,179 @@
+# ============================================================================
+# Agentic Router - Git Ignore
+# ============================================================================
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+ENV/
+env/
+.venv/
+virtualenv/
+
+# Environment Variables
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+*.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+.project
+.pydevproject
+.settings/
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs/
+log/
+
+# Test files and PDFs
+*.pdf
+!README.pdf
+
+# Temporary files
+*.tmp
+*.temp
+tmp/
+temp/
+*.bak
+*.swp
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*.ipynb
+
+# Pytest
+.pytest_cache/
+pytest_cache/
+.pytest/
+
+# Mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Tox
+.tox/
+
+# Elasticsearch data (if running locally)
+elasticsearch_data/
+data/
+
+# Docker
+docker-compose.override.yml
+docker-compose.local.yml
+*.tar
+
+# Uploads (runtime data)
+uploads/
+temp_uploads/
+
+# Cache
+.cache/
+*.cache
+.ruff_cache/
+
+# Coverage
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+.hypothesis/
+nosetests.xml
+
+# Secrets and certificates
+*.pem
+*.key
+*.crt
+*.p12
+secrets/
+credentials/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Compiled files
+*.dll
+*.exe
+*.o
+*.obj
+
+# Package lock files (if not using)
+# Uncomment if you don't want to track these
+# package-lock.json
+# yarn.lock
+
+# Node modules (if frontend added)
+node_modules/
+
+# Output files
+output/
+results/
+exports/
+
+test_ui.py
+FLOW_OVERVIEW.md
+
+test_chatbot_endpoint.py/
+
+# Test files and scripts
+test_*.py
+*_test.py
+test_*.sh
+*test*.sh
+test_notebooks/
+# Analysis and issue tracking docs
+ISSUE_ANALYSIS.md
+*_ANALYSIS.md
+
+
+dev_env.txt
+.env.prod
+
+## endpoints .md files
+payload_doc/
+scripts/
