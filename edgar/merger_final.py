@@ -1,14 +1,3 @@
-from collections import OrderedDict
-from typing import Any, Dict
-
-
-def build_unified_catalog_all_statements(years_json: Dict[str, Any]) -> Dict[str, OrderedDict]:
-    return {
-        "income_statement": OrderedDict(),
-        "balance_sheet": OrderedDict(),
-        "cash_flow_statement": OrderedDict(),
-    }
-
 from collections import defaultdict, OrderedDict
 import re
 import logging
