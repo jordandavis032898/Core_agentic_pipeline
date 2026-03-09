@@ -296,23 +296,22 @@ app = FastAPI(
 )
 
 # CORS middleware: allow deployed frontend + localhost for MVP demo / local dev
-frontend_uri = os.getenv("FRONTEND_URI", "*")
-if frontend_uri == "*":
-    cors_origins = ["*"]
-else:
-    cors_origins = [o.strip() for o in frontend_uri.split(",") if o.strip()]
-    # Always allow localhost so MVP demo UI (and local dev) can call this API
-    localhost_origins = [
-        "http://localhost:5174",
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "http://127.0.0.1:5174",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:3000",
-    ]
-    for origin in localhost_origins:
-        if origin not in cors_origins:
-            cors_origins.append(origin)
+# Note: allow_credentials=True is incompatible with allow_origins=["*"],
+# so we always enumerate explicit origins.
+frontend_uri = os.getenv("FRONTEND_URI", "")
+cors_origins = [o.strip() for o in frontend_uri.split(",") if o.strip()]
+# Always allow localhost so MVP demo UI (and local dev) can call this API
+localhost_origins = [
+    "http://localhost:5174",
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:5174",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000",
+]
+for origin in localhost_origins:
+    if origin not in cors_origins:
+        cors_origins.append(origin)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
