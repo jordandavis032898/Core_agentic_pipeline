@@ -300,8 +300,9 @@ app = FastAPI(
 # so we always enumerate explicit origins.
 frontend_uri = os.getenv("FRONTEND_URI", "")
 cors_origins = [o.strip() for o in frontend_uri.split(",") if o.strip()]
-# Always allow localhost so MVP demo UI (and local dev) can call this API
-localhost_origins = [
+# Always allow deployed frontend + localhost for dev
+extra_origins = [
+    "https://web-production-4c4e8.up.railway.app",
     "http://localhost:5174",
     "http://localhost:5173",
     "http://localhost:3000",
@@ -309,7 +310,7 @@ localhost_origins = [
     "http://127.0.0.1:5173",
     "http://127.0.0.1:3000",
 ]
-for origin in localhost_origins:
+for origin in extra_origins:
     if origin not in cors_origins:
         cors_origins.append(origin)
 app.add_middleware(
