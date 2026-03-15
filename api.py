@@ -303,6 +303,7 @@ cors_origins = [o.strip() for o in frontend_uri.split(",") if o.strip()]
 # Always allow deployed frontend + localhost for dev
 extra_origins = [
     "https://web-production-4c4e8.up.railway.app",
+    "https://agentic-router-standalone-production.up.railway.app",
     "http://localhost:5174",
     "http://localhost:5173",
     "http://localhost:3000",
