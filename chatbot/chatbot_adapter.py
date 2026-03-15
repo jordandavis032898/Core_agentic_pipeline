@@ -485,21 +485,30 @@ class ChatbotAdapter:
         """Get the error message for a file if it has one."""
         return self._error_files.get(file_path)
     
-    def get_all_documents(self) -> List[Dict[str, Any]]:
+    def get_all_documents(self, filter_user_id: str = None) -> List[Dict[str, Any]]:
         """
-        Get all unique documents from all users with their metadata.
-        
+        Get documents with their metadata, optionally filtered by user_id.
+
+        Args:
+            filter_user_id: If provided, only return documents for this user
+
         Returns:
             List of document metadata dicts
         """
         documents = []
-        for user_id, user_data in self.user_data_store.items():
+        users_to_scan = self.user_data_store.items()
+        if filter_user_id and filter_user_id in self.user_data_store:
+            users_to_scan = [(filter_user_id, self.user_data_store[filter_user_id])]
+        elif filter_user_id:
+            return []  # User has no documents
+
+        for user_id, user_data in users_to_scan:
             for config in user_data.get("document_configs", []):
                 tool_name = config["tool_name"]
                 # Extract doc_id from tool_name (format: user_id_doc_id)
                 parts = tool_name.split("_", 1)
                 doc_id = parts[1] if len(parts) == 2 else tool_name
-                
+
                 documents.append({
                     "hash": tool_name,  # Use tool_name as hash for compatibility
                     "file_id": tool_name,
@@ -511,7 +520,7 @@ class ChatbotAdapter:
                     "user_id": user_id,
                     "tool_name": tool_name
                 })
-        
+
         return documents
     
     def get_available_filters(self) -> Dict[str, List[str]]:

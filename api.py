@@ -26,7 +26,7 @@ except ImportError:
 
 # Package is properly structured - no sys.path manipulation needed
 
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Depends, Header, BackgroundTasks
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query, Depends, Header, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
@@ -1013,17 +1013,18 @@ async def get_edgar_data(
 
 @app.get("/documents", response_model=APIResponse)
 async def list_documents(
+    user_id: Optional[str] = Query(None, description="Filter documents by user_id"),
     _: bool = Depends(verify_api_key)
 ):
     """
-    List all documents stored in the vector database.
-    
-    Returns all unique documents with their metadata from Qdrant.
+    List documents stored in the vector database, optionally filtered by user_id.
+
+    Returns unique documents with their metadata from Qdrant.
     """
     router = get_router()
-    
+
     try:
-        documents = router.chatbot.get_all_documents()
+        documents = router.chatbot.get_all_documents(filter_user_id=user_id)
         
         return APIResponse(
             success=True,
