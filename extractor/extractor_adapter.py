@@ -18,6 +18,22 @@ from .validator import (
 )
 
 
+def _reliable_page_numbers(docs):
+    """
+    Build a reliable page number map using idx+1 as fallback
+    when no ##PAGE:N## marker is present.
+    """
+    page_numbers = {}
+    for idx, doc in enumerate(docs):
+        text = doc.text if hasattr(doc, 'text') else str(doc)
+        match = re.search(r'##PAGE:(\d+)##', text)
+        if match:
+            page_numbers[idx] = int(match.group(1))
+        else:
+            page_numbers[idx] = idx + 1
+    return page_numbers
+
+
 def run_async_in_thread(coro):
     """
     Run an async coroutine from a sync context, even if an event loop is already running.
@@ -68,7 +84,7 @@ class ExtractorAdapter:
 
         Design: List index is the source of truth for all operations (extraction,
         selection, which cards to show). For each document we attach a page number
-        from ##PAGE:n## (or 0 if missing/blank). Page number is used only for
+        from ##PAGE:n## (or idx+1 if missing). Page number is used only for
         UI display and for choosing which PDF page to render in preview.
         """
         if log_callback:
@@ -81,13 +97,14 @@ class ExtractorAdapter:
                 log_callback(f"Using cached filtered pages for {file_path}", "info")
             return self._filtered_pages[key]
 
+        page_number_map = _reliable_page_numbers(documents or [])
+
         filtered_pages: List[Dict[str, Any]] = []
         for idx, doc in enumerate(documents or []):
             text = getattr(doc, "text", None) or (
                 doc.get_content() if hasattr(doc, "get_content") else ""
             ) or ""
-            m = re.search(r"##PAGE:(\d+)##", text or "")
-            page_number = int(m.group(1)) if m else (idx + 1)
+            page_number = page_number_map.get(idx, idx + 1)
             result = prefilter_statement_page_from_rmd(text)
             if result.get("pass", False):
                 filtered_pages.append(
