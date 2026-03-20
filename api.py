@@ -780,120 +780,44 @@ async def get_page_preview_by_number(
 
 @app.get("/pages/{file_id}/pdf-pages")
 async def get_pdf_pages(file_id: str, width: int = 300):
-    """Return list of page indices and base64 thumbnails for a PDF."""
-    if not PYMUPDF_AVAILABLE:
-        raise HTTPException(status_code=501, detail="PyMuPDF not available")
-    file_path = get_file_path(file_id)
-    doc = None
     try:
-        doc = fitz.open(str(file_path))
+        file_path = get_file_path(file_id)
+        doc = fitz.open(file_path)
         pages = []
         for i in range(len(doc)):
             page = doc[i]
-            scale = width / page.rect.width
-            mat = fitz.Matrix(scale, scale)
+            mat = fitz.Matrix(width / page.rect.width, width / page.rect.width)
             pix = page.get_pixmap(matrix=mat)
             img_data = pix.tobytes("png")
             img_b64 = base64.b64encode(img_data).decode()
             pages.append({
-                "pdf_page": i + 1,
-                "image": img_b64,
+                "page_index": i,
+                "page_number": i + 1,
+                "thumbnail": f"data:image/png;base64,{img_b64}"
             })
+        doc.close()
         return {"pages": pages}
-    except HTTPException:
-        raise
     except Exception as e:
-        logger.exception("pdf-pages failed for file_id=%s: %s", file_id, e)
         raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        if doc is not None:
-            try:
-                doc.close()
-            except Exception:
-                pass
 
 
 @app.post("/extract-by-page-numbers")
 async def extract_by_page_numbers(request: Request):
-    """
-    Extract tables from specific 1-based PDF page numbers.
-
-    Accepts {"file_id": str, "page_numbers": [int]}.
-    Maps page_numbers to the chunk indices used by the extraction pipeline.
-    """
-    body = await request.json()
-    file_id = body.get("file_id")
-    page_numbers = body.get("page_numbers", [])
-
-    if not file_id or not page_numbers:
-        raise HTTPException(status_code=400, detail="file_id and page_numbers required")
-
-    router = get_router()
-    file_path = get_file_path(file_id)
-
     try:
-        # Map page_numbers to page indices via filtered pages
-        filtered = router.get_filtered_pages(str(file_path))
-        if filtered:
-            # Build lookup: page_number -> index
-            pn_to_idx = {p["page_number"]: p["index"] for p in filtered}
-            page_indices = [pn_to_idx[pn] for pn in page_numbers if pn in pn_to_idx]
-            # For any page_numbers not in filtered cache, use (pn - 1) as fallback
-            missing = [pn for pn in page_numbers if pn not in pn_to_idx]
-            page_indices += [pn - 1 for pn in missing]
-        else:
-            # No filtered cache — assume page_number = index + 1
-            page_indices = [pn - 1 for pn in page_numbers]
-
-        results = router.extract_tables(str(file_path), page_indices)
-
-        extracted_tables = []
-        successful = 0
-        failed = 0
-        for result in results:
-            if result.get("data"):
-                successful += 1
-                extracted_tables.append({
-                    "page_index": result.get("page_index", 0),
-                    "page_number": result.get("page_number", 0),
-                    "extraction_status": "success",
-                    "data": result.get("data"),
-                    "table_metadata": result.get("table_metadata"),
-                    "explanation": result.get("explanation"),
-                    "error": None,
-                })
-            else:
-                failed += 1
-                extracted_tables.append({
-                    "page_index": result.get("page_index", 0),
-                    "page_number": result.get("page_number", 0),
-                    "extraction_status": "failed",
-                    "data": None,
-                    "table_metadata": None,
-                    "explanation": None,
-                    "error": result.get("error", "Unknown extraction error"),
-                })
-
-        return {
-            "success": True,
-            "data": {
-                "file_id": file_id,
-                "extracted_tables": extracted_tables,
-                "summary": {
-                    "total_pages_processed": len(page_indices),
-                    "successful_extractions": successful,
-                    "failed_extractions": failed,
-                },
-            },
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"extract-by-page-numbers error: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail={"code": "EXTRACTION_ERROR", "message": str(e)}
+        body = await request.json()
+        file_id = body.get("file_id")
+        page_numbers = body.get("page_numbers", [])
+        if not file_id or not page_numbers:
+            raise HTTPException(status_code=400, detail="file_id and page_numbers required")
+        file_path = get_file_path(file_id)
+        result = await run_async_in_thread(
+            validate_selected_pages,
+            file_path,
+            page_numbers
         )
+        return {"success": True, "data": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/extract", response_model=APIResponse)
