@@ -13,6 +13,7 @@ import uuid
 import shutil
 import logging
 import tempfile
+import base64
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 from datetime import datetime
@@ -769,6 +770,41 @@ async def get_page_preview_by_number(
             status_code=500,
             detail={"code": "PREVIEW_ERROR", "message": str(e)}
         )
+    finally:
+        if doc is not None:
+            try:
+                doc.close()
+            except Exception:
+                pass
+
+
+@app.get("/pages/{file_id}/pdf-pages")
+async def get_pdf_pages(file_id: str, width: int = 300):
+    """Return list of page indices and base64 thumbnails for a PDF."""
+    if not PYMUPDF_AVAILABLE:
+        raise HTTPException(status_code=501, detail="PyMuPDF not available")
+    file_path = get_file_path(file_id)
+    doc = None
+    try:
+        doc = fitz.open(str(file_path))
+        pages = []
+        for i in range(len(doc)):
+            page = doc[i]
+            scale = width / page.rect.width
+            mat = fitz.Matrix(scale, scale)
+            pix = page.get_pixmap(matrix=mat)
+            img_data = pix.tobytes("png")
+            img_b64 = base64.b64encode(img_data).decode()
+            pages.append({
+                "pdf_page": i + 1,
+                "image": img_b64,
+            })
+        return {"pages": pages}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("pdf-pages failed for file_id=%s: %s", file_id, e)
+        raise HTTPException(status_code=500, detail=str(e))
     finally:
         if doc is not None:
             try:
