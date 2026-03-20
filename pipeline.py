@@ -215,13 +215,18 @@ class AgenticRouter:
         """
         documents = self.parser.get_cached_documents(pdf_path)
         if not documents:
+            print(f"[DEBUG] get_filtered_pages: no cached documents for {pdf_path}", flush=True)
             return None
-        return self.extractor.prefilter_pages(
+        filtered_pages = self.extractor.prefilter_pages(
             documents,
             pdf_path,
             log_callback=None,
             cache=False
         )
+        print(f"[DEBUG] prefilter returned {len(filtered_pages)} pages for {pdf_path}", flush=True)
+        for p in filtered_pages[:5]:
+            print(f"[DEBUG] page index={p['index']} page_number={p['page_number']} filter={p.get('filter_result', {}).get('type', 'unknown')}", flush=True)
+        return filtered_pages
     
     def extract_tables(
         self,
