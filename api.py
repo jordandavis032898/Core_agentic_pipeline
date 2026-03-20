@@ -820,19 +820,8 @@ async def extract_by_page_numbers(request: Request):
     file_path = get_file_path(file_id)
 
     try:
-        # Get filtered pages to map page_number -> index
-        filtered = router.get_filtered_pages(str(file_path))
-        if filtered:
-            pn_to_idx = {p["page_number"]: p["index"] for p in filtered}
-            page_indices = [pn_to_idx[pn] for pn in page_numbers if pn in pn_to_idx]
-            # Fallback for page_numbers not in filtered cache
-            missing = [pn for pn in page_numbers if pn not in pn_to_idx]
-            page_indices += [pn - 1 for pn in missing]
-        else:
-            # No filtered cache — assume page_number = index + 1
-            page_indices = [pn - 1 for pn in page_numbers]
-
-        # Delegate to the same path as /extract
+        # Convert 1-based page numbers to 0-based indices
+        page_indices = [p - 1 for p in page_numbers]
         results = router.extract_tables(str(file_path), page_indices)
 
         extracted_tables = []
