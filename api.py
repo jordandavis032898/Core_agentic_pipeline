@@ -803,21 +803,85 @@ async def get_pdf_pages(file_id: str, width: int = 300):
 
 @app.post("/extract-by-page-numbers")
 async def extract_by_page_numbers(request: Request):
+    """
+    Extract tables from specific 1-based page numbers.
+    Accepts {"file_id": str, "page_numbers": [int]}.
+    Maps page_numbers to chunk indices via filtered pages, then delegates
+    to router.extract_tables() which calls ExtractorAdapter.validate_selected_pages().
+    """
+    body = await request.json()
+    file_id = body.get("file_id")
+    page_numbers = body.get("page_numbers", [])
+
+    if not file_id or not page_numbers:
+        raise HTTPException(status_code=400, detail="file_id and page_numbers required")
+
+    router = get_router()
+    file_path = get_file_path(file_id)
+
     try:
-        body = await request.json()
-        file_id = body.get("file_id")
-        page_numbers = body.get("page_numbers", [])
-        if not file_id or not page_numbers:
-            raise HTTPException(status_code=400, detail="file_id and page_numbers required")
-        file_path = get_file_path(file_id)
-        result = await run_async_in_thread(
-            validate_selected_pages,
-            file_path,
-            page_numbers
-        )
-        return {"success": True, "data": result}
+        # Get filtered pages to map page_number -> index
+        filtered = router.get_filtered_pages(str(file_path))
+        if filtered:
+            pn_to_idx = {p["page_number"]: p["index"] for p in filtered}
+            page_indices = [pn_to_idx[pn] for pn in page_numbers if pn in pn_to_idx]
+            # Fallback for page_numbers not in filtered cache
+            missing = [pn for pn in page_numbers if pn not in pn_to_idx]
+            page_indices += [pn - 1 for pn in missing]
+        else:
+            # No filtered cache — assume page_number = index + 1
+            page_indices = [pn - 1 for pn in page_numbers]
+
+        # Delegate to the same path as /extract
+        results = router.extract_tables(str(file_path), page_indices)
+
+        extracted_tables = []
+        successful = 0
+        failed = 0
+        for result in results:
+            if result.get("data"):
+                successful += 1
+                extracted_tables.append({
+                    "page_index": result.get("page_index", 0),
+                    "page_number": result.get("page_number", 0),
+                    "extraction_status": "success",
+                    "data": result.get("data"),
+                    "table_metadata": result.get("table_metadata"),
+                    "explanation": result.get("explanation"),
+                    "error": None,
+                })
+            else:
+                failed += 1
+                extracted_tables.append({
+                    "page_index": result.get("page_index", 0),
+                    "page_number": result.get("page_number", 0),
+                    "extraction_status": "failed",
+                    "data": None,
+                    "table_metadata": None,
+                    "explanation": None,
+                    "error": result.get("error", "Unknown extraction error"),
+                })
+
+        return {
+            "success": True,
+            "data": {
+                "file_id": file_id,
+                "extracted_tables": extracted_tables,
+                "summary": {
+                    "total_pages_processed": len(page_indices),
+                    "successful_extractions": successful,
+                    "failed_extractions": failed,
+                },
+            },
+        }
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"extract-by-page-numbers error: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail={"code": "EXTRACTION_ERROR", "message": str(e)}
+        )
 
 
 @app.post("/extract", response_model=APIResponse)
