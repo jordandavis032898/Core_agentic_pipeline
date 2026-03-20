@@ -81,16 +81,13 @@ class ExtractorAdapter:
                 log_callback(f"Using cached filtered pages for {file_path}", "info")
             return self._filtered_pages[key]
 
-        def _page_number_from_text(text: str) -> int:
-            m = re.search(r"##PAGE:(\d+)##", text or "")
-            return int(m.group(1)) if m else 0
-
         filtered_pages: List[Dict[str, Any]] = []
         for idx, doc in enumerate(documents or []):
             text = getattr(doc, "text", None) or (
                 doc.get_content() if hasattr(doc, "get_content") else ""
             ) or ""
-            page_number = _page_number_from_text(text)
+            m = re.search(r"##PAGE:(\d+)##", text or "")
+            page_number = int(m.group(1)) if m else (idx + 1)
             result = prefilter_statement_page_from_rmd(text)
             if result.get("pass", False):
                 filtered_pages.append(
